@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  SOCIETY_ADMIN
+  RESIDENT
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum MaintenanceStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model User {
+  id             String        @id @default(cuid())
+  name           String
+  email          String        @unique
+  password       String
+  phone          String?
+  role           UserRole      @default(RESIDENT)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  societies      Society[]     @relation("SocietyAdmin")
+  apartments     Apartment[]   @relation("ApartmentResident")
+  bookings       Booking[]
+  complaints     Complaint[]
+  visitors       Visitor[]
+  maintenances   Maintenance[]
+  noticesCreated Notice[]      @relation("NoticeCreatedBy")
+}
+
+model Society {
+  id           String        @id @default(cuid())
+  name         String
+  address      String
+  city         String
+  adminId      String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  admin        User          @relation("SocietyAdmin", fields: [adminId], references: [id])
+  buildings    Building[]
+  amenities    Amenity[]
+  notices      Notice[]
+  complaints   Complaint[]
+  visitors     Visitor[]
+  maintenances Maintenance[]
+}
+
+model Building {
+  id         String      @id @default(cuid())
+  name       String
+  societyId  String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  society    Society     @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  apartments Apartment[]
+}
+
+model Apartment {
+  id            String         @id @default(cuid())
+  number        String
+  floor         Int
+  buildingId    String
+  residentId    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  resident      User?          @relation("ApartmentResident", fields: [residentId], references: [id])
+  familyMembers FamilyMember[]
+  vehicles      Vehicle[]
+}
+
+model FamilyMember {
+  id          String    @id @default(cuid())
+  name        String
+  relation    String
+  phone       String?
+  apartmentId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+}
+
+model Vehicle {
+  id          String    @id @default(cuid())
+  plateNumber String    @unique
+  type        String
+  brand       String?
+  apartmentId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+}
+
+model Amenity {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  societyId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  society     Society   @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  amenityId String
+  userId    String
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+  status    BookingStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  amenity   Amenity       @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  category    String
+  societyId   String
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  creator     User     @relation("NoticeCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+}
+
+model Complaint {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  category    String
+  status      ComplaintStatus @default(OPEN)
+  photo       String?
+  userId      String
+  societyId   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  society     Society         @relation(fields: [societyId], references: [id], onDelete: Cascade)
+}
+
+model Visitor {
+  id           String    @id @default(cuid())
+  name         String
+  phone        String?
+  vehiclePlate String?
+  purpose      String
+  userId       String
+  societyId    String
+  entryTime    DateTime  @default(now())
+  exitTime     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  society      Society   @relation(fields: [societyId], references: [id], onDelete: Cascade)
+}
+
+model Maintenance {
+  id        String            @id @default(cuid())
+  amount    Decimal           @db.Decimal(10, 2)
+  month     Int
+  year      Int
+  status    MaintenanceStatus @default(PENDING)
+  userId    String
+  societyId String
+  paidAt    DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  society   Society           @relation(fields: [societyId], references: [id], onDelete: Cascade)
+}
