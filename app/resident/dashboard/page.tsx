@@ -1,3 +1,5 @@
+import Sidebar from "@/src/components/Sidebar";
+
 type Booking = {
   id: string;
   amenity: string;
@@ -11,17 +13,6 @@ type Notice = {
   title: string;
   date: string;
 };
-
-const navItems: string[] = [
-  "Dashboard",
-  "My Family",
-  "My Vehicles",
-  "Book Amenity",
-  "Notice Board",
-  "My Complaints",
-  "Visitor Entry",
-  "Pay Maintenance",
-];
 
 const stats = [
   { label: "Family Members", value: "4" },
@@ -46,26 +37,7 @@ export default function ResidentDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="mx-auto grid max-w-7xl gap-4 p-4 md:grid-cols-[250px_1fr] md:p-6">
-        <aside className="rounded-2xl bg-white p-5 shadow-lg">
-          <div className="mb-8">
-            <p className="text-sm font-medium text-slate-500">SocietyPro</p>
-            <h1 className="text-xl font-bold text-[#1e3a5f]">Resident Panel</h1>
-          </div>
-          <nav className="space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
-                  item === "Dashboard"
-                    ? "bg-[#1e3a5f] text-white"
-                    : "text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <Sidebar variant="resident" />
 
         <main className="space-y-5">
           <section className="rounded-2xl bg-white p-5 shadow-lg">

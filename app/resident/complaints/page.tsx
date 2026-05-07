@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import Sidebar from "@/src/components/Sidebar";
+
 type ComplaintStatusFilter = "ALL" | "OPEN" | "IN_PROGRESS" | "RESOLVED";
 
 type Complaint = {
@@ -109,7 +111,10 @@ export default function ResidentComplaintsPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="mx-auto max-w-6xl space-y-5">
+      <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-[250px_1fr]">
+        <Sidebar variant="resident" />
+
+        <main className="space-y-5">
         <section className="rounded-2xl bg-white p-5 shadow-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -248,6 +253,7 @@ export default function ResidentComplaintsPage() {
             </div>
           )}
         </section>
+        </main>
       </div>
     </div>
   );

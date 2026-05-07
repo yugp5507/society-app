@@ -1,3 +1,5 @@
+import Sidebar from "@/src/components/Sidebar";
+
 type Notice = {
   id: string;
   title: string;
@@ -11,17 +13,6 @@ type Complaint = {
   resident: string;
   status: "Open" | "In Progress" | "Resolved";
 };
-
-const navItems: string[] = [
-  "Dashboard",
-  "Residents",
-  "Buildings & Apartments",
-  "Notice Board",
-  "Complaints",
-  "Amenity Booking",
-  "Visitor Log",
-  "Maintenance",
-];
 
 const stats = [
   { label: "Total Residents", value: "862" },
@@ -46,26 +37,7 @@ export default function SocietyAdminDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="mx-auto grid max-w-7xl gap-4 p-4 md:grid-cols-[250px_1fr] md:p-6">
-        <aside className="rounded-2xl bg-white p-5 shadow-lg">
-          <div className="mb-8">
-            <p className="text-sm font-medium text-slate-500">SocietyPro</p>
-            <h1 className="text-xl font-bold text-[#1e3a5f]">Society Admin</h1>
-          </div>
-          <nav className="space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
-                  item === "Dashboard"
-                    ? "bg-[#1e3a5f] text-white"
-                    : "text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <Sidebar variant="society-admin" />
 
         <main className="space-y-5">
           <section className="rounded-2xl bg-white p-5 shadow-lg">
