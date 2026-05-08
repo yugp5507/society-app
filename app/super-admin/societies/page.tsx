@@ -1,18 +1,27 @@
-import Sidebar from "@/src/components/Sidebar";
+import { prisma } from "@/src/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/src/lib/auth";
+import { redirect } from "next/navigation";
+import SocietiesClient from "./SocietiesClient";
 
-export default function SuperAdminSocietiesPage() {
-  return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-[250px_1fr]">
-        <Sidebar variant="super-admin" />
-        <main className="space-y-5">
-          <section className="rounded-2xl bg-white p-5 shadow-lg">
-            <h1 className="text-2xl font-bold text-[#1e3a5f]">Societies</h1>
-            <p className="mt-1 text-sm text-slate-600">Coming soon. Add and manage societies here.</p>
-          </section>
-        </main>
-      </div>
-    </div>
-  );
+export default async function SocietiesPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user.role !== "SUPER_ADMIN") {
+    redirect("/login");
+  }
+
+  const societies = await prisma.society.findMany({
+    include: {
+      admin: {
+        select: { name: true, email: true },
+      },
+      buildings: {
+        select: { id: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return <SocietiesClient initialSocieties={societies} />;
 }
-

@@ -1,9 +1,8 @@
 /**
  * prisma/seed.ts
- * Run with:  npx tsx prisma/seed.ts
- *            or via   npm run db:seed
+ * Run with: npx prisma db seed
  *
- * Creates the Super Admin user if it doesn't already exist.
+ * Creates Super Admin, Society Admin, and Resident users.
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -14,37 +13,61 @@ const connectionString = "postgresql://postgres:8866@localhost:5432/society_db";
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  const email = "superadmin@societypro.com";
-  const plainPassword = "admin@123";
+const PASSWORD = "Admin@123";
 
-  console.log("🌱 Starting seed...");
-
-  const hashedPassword = await hash(plainPassword, 12);
-
-  const superAdmin = await prisma.user.upsert({
-    where: { email },
+async function seedUser(data: {
+  name: string;
+  email: string;
+  phone: string;
+  role: "SUPER_ADMIN" | "SOCIETY_ADMIN" | "RESIDENT";
+}) {
+  const hashed = await hash(PASSWORD, 12);
+  const user = await prisma.user.upsert({
+    where: { email: data.email },
     update: {
-      name: "Super Admin",
-      password: hashedPassword,
-      role: "SUPER_ADMIN",
+      name: data.name,
+      phone: data.phone,
+      password: hashed,
+      role: data.role,
     },
     create: {
-      name: "Super Admin",
-      email,
-      password: hashedPassword,
-      role: "SUPER_ADMIN",
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: hashed,
+      role: data.role,
     },
   });
+  console.log(`✅ ${data.role}: ${user.name} <${user.email}>`);
+  return user;
+}
 
-  console.log("✅ Super Admin seeded successfully!");
-  console.log(`   Name  : ${superAdmin.name}`);
-  console.log(`   Email : ${superAdmin.email}`);
-  console.log(`   Role  : ${superAdmin.role}`);
-  console.log(`   ID    : ${superAdmin.id}`);
-  console.log("\n🔑 Login credentials:");
-  console.log(`   Email   : ${email}`);
-  console.log(`   Password: ${plainPassword}`);
+async function main() {
+  console.log("🌱 Seeding SocietyPro database...\n");
+
+  await seedUser({
+    name: "Super Admin",
+    email: "superadmin@societypro.com",
+    phone: "9999999999",
+    role: "SUPER_ADMIN",
+  });
+
+  await seedUser({
+    name: "Society Admin",
+    email: "admin@societypro.com",
+    phone: "8888888888",
+    role: "SOCIETY_ADMIN",
+  });
+
+  await seedUser({
+    name: "Test Resident",
+    email: "resident@societypro.com",
+    phone: "7777777777",
+    role: "RESIDENT",
+  });
+
+  console.log("\n🔑 All users use password: Admin@123");
+  console.log("✨ Seed complete!");
 }
 
 main()

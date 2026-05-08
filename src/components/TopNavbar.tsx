@@ -9,7 +9,7 @@ type TopNavbarProps = {
 
 export default function TopNavbar({ title, onMenuClick }: TopNavbarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white px-4 shadow-sm border-b border-slate-200 md:px-8">
+    <header className="flex-shrink-0 flex h-16 w-full items-center justify-between bg-white px-4 shadow-sm border-b border-slate-200 md:px-8 z-20">
       <div className="flex items-center gap-4">
         {/* Mobile menu button */}
         <button

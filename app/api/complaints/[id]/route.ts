@@ -18,13 +18,16 @@ const nextAllowedStatus: Record<ComplaintStatus, ComplaintStatus[]> = {
   CLOSED: [],
 };
 
-export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || session.user.role !== UserRole.SOCIETY_ADMIN) {
     return NextResponse.json({ message: "Only society admins can update complaints" }, { status: 403 });
   }
 
-  const { id } = await context.params;
+  const { id } = await params;
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
 

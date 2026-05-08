@@ -2,8 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import Sidebar from "@/src/components/Sidebar";
-
 type Relation =
   | "Spouse"
   | "Son"
@@ -183,12 +181,9 @@ export default function ResidentFamilyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-[250px_1fr]">
-        <Sidebar variant="resident" />
-
-        <main className="space-y-5">
-        <section className="rounded-2xl bg-white p-5 shadow-lg">
+    <>
+      <main className="space-y-5">
+          <section className="rounded-2xl bg-white p-5 shadow-lg">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[#1e3a5f]">My Family</h1>
@@ -286,8 +281,6 @@ export default function ResidentFamilyPage() {
           </section>
         )}
         </main>
-      </div>
-
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
@@ -377,7 +370,7 @@ export default function ResidentFamilyPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import DashboardLayout from "@/src/components/DashboardLayout";
 import Link from "next/link";
 import {
   Home,
@@ -111,8 +110,7 @@ function StatCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SuperAdminDashboardPage() {
   return (
-    <DashboardLayout variant="super-admin" title="Dashboard">
-
+    <>
       {/* ── Welcome Section ── */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div>
@@ -259,7 +257,6 @@ export default function SuperAdminDashboardPage() {
           </div>
         </article>
       </div>
-
-    </DashboardLayout>
+    </>
   );
 }

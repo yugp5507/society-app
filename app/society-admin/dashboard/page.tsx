@@ -1,6 +1,5 @@
 "use client";
 
-import DashboardLayout from "@/src/components/DashboardLayout";
 import Link from "next/link";
 import {
   Users,
@@ -114,8 +113,7 @@ const categoryColors: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SocietyAdminDashboardPage() {
   return (
-    <DashboardLayout variant="society-admin" title="Dashboard">
-      
+    <>
       {/* ── Welcome Section ── */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div>
@@ -214,6 +212,6 @@ export default function SocietyAdminDashboardPage() {
           </ul>
         </article>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
