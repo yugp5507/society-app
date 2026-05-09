@@ -6,10 +6,12 @@ const navItems = [
   { href: '/society-admin/sub-admins',  icon: '🛡️', label: 'Sub Admins' },
   { href: '/society-admin/residents',   icon: '👥', label: 'Residents' },
   { href: '/society-admin/buildings',   icon: '🏢', label: 'Buildings' },
+  { href: '/society-admin/amenities',   icon: '🏛️', label: 'Amenities' },
   { href: '/society-admin/notices',     icon: '📢', label: 'Notices' },
   { href: '/society-admin/complaints',  icon: '📝', label: 'Complaints' },
   { href: '/society-admin/bookings',    icon: '🏊', label: 'Bookings' },
   { href: '/society-admin/visitors',    icon: '🚪', label: 'Visitor Log' },
+  { href: '/society-admin/guards',      icon: '👮', label: 'Guards & QR' },
   { href: '/society-admin/maintenance', icon: '💰', label: 'Maintenance' },
 ]
 

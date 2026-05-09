@@ -17,6 +17,7 @@ enum UserRole {
   SOCIETY_ADMIN
   SUB_ADMIN
   RESIDENT
+  SECURITY_GUARD
 }
 
 enum BookingStatus {
@@ -24,6 +25,19 @@ enum BookingStatus {
   APPROVED
   REJECTED
   CANCELLED
+  COMPLETED
+}
+
+enum AmenityStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PaymentStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  REFUNDED
 }
 
 enum ComplaintStatus {
@@ -39,40 +53,70 @@ enum MaintenanceStatus {
   OVERDUE
 }
 
+enum VisitorStatus {
+  APPROVED
+  INSIDE
+  LEFT
+  DENIED
+}
+
+enum GateEntryStatus {
+  PENDING
+  APPROVED
+  DENIED
+  INSIDE
+  LEFT
+}
+
+enum EntryMethod {
+  QR_SCAN
+  MANUAL
+  PRE_APPROVED
+}
+
 model User {
-  id             String        @id @default(cuid())
-  name           String
-  email          String        @unique
-  password       String
-  phone          String?
-  role           UserRole      @default(RESIDENT)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  societies      Society[]     @relation("SocietyAdmin")
-  apartments     Apartment[]   @relation("ApartmentResident")
-  subAdminBuildings Building[]   @relation("BuildingSubAdmin")
-  bookings       Booking[]
-  complaints     Complaint[]
-  visitors       Visitor[]
-  maintenances   Maintenance[]
-  noticesCreated Notice[]      @relation("NoticeCreatedBy")
+  id                String            @id @default(cuid())
+  name              String
+  email             String            @unique
+  password          String
+  phone             String?
+  role              UserRole          @default(RESIDENT)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  societies         Society[]         @relation("SocietyAdmin")
+  apartments        Apartment[]       @relation("ApartmentResident")
+  subAdminBuildings Building[]        @relation("BuildingSubAdmin")
+  bookings          Booking[]
+  complaints        Complaint[]
+  visitors          Visitor[]
+  maintenances      Maintenance[]
+  noticesCreated    Notice[]          @relation("NoticeCreatedBy")
+  approvedVisitors  Visitor[]         @relation("ApprovedVisitor")
+  expectedVisitors  ExpectedVisitor[]
+  gateEntries       GateEntry[]       @relation("GuardEntries")
+  societyId         String?
+  society           Society?          @relation("GuardSociety", fields: [societyId], references: [id])
 }
 
 model Society {
-  id           String        @id @default(cuid())
-  name         String
-  address      String
-  city         String
-  adminId      String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  admin        User          @relation("SocietyAdmin", fields: [adminId], references: [id])
-  buildings    Building[]
-  amenities    Amenity[]
-  notices      Notice[]
-  complaints   Complaint[]
-  visitors     Visitor[]
-  maintenances Maintenance[]
+  id               String            @id @default(cuid())
+  name             String
+  address          String
+  city             String
+  adminId          String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  admin            User              @relation("SocietyAdmin", fields: [adminId], references: [id])
+  buildings        Building[]
+  amenities        Amenity[]
+  notices          Notice[]
+  complaints       Complaint[]
+  visitors         Visitor[]
+  maintenances     Maintenance[]
+  expectedVisitors ExpectedVisitor[]
+  gateEntries      GateEntry[]
+  gateQRs          GateQR[]
+  guards           User[]            @relation("GuardSociety")
 }
 
 model Building {
@@ -88,18 +132,20 @@ model Building {
 }
 
 model Apartment {
-  id            String         @id @default(cuid())
+  id            String            @id @default(cuid())
   number        String
   floor         Int
   buildingId    String
   residentId    String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  building      Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
-  resident      User?          @relation("ApartmentResident", fields: [residentId], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  building      Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  resident      User?             @relation("ApartmentResident", fields: [residentId], references: [id])
   familyMembers FamilyMember[]
   vehicles      Vehicle[]
   inviteTokens  InviteToken[]
+  visitors      Visitor[]
+  gateEntries   GateEntry[]
 }
 
 model FamilyMember {
@@ -127,73 +173,112 @@ model Vehicle {
 }
 
 model Amenity {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  societyId   String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  society     Society   @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  bookings    Booking[]
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  capacity        Int           @default(10)
+  location        String?
+  availableDays   String        @default("Mon,Tue,Wed,Thu,Fri,Sat,Sun")
+  openTime        String        @default("06:00")
+  closeTime       String        @default("22:00")
+  slotDuration    Int           @default(60)
+  advanceBookDays Int           @default(7)
+  isPaid          Boolean       @default(false)
+  pricePerSlot    Decimal?      @db.Decimal(10, 2)
+  status          AmenityStatus @default(ACTIVE)
+  societyId       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  society         Society       @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
 }
 
 model Booking {
-  id        String        @id @default(cuid())
-  amenityId String
-  userId    String
-  date      DateTime
-  startTime DateTime
-  endTime   DateTime
-  status    BookingStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  amenity   Amenity       @relation(fields: [amenityId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String        @id @default(cuid())
+  amenityId     String
+  userId        String
+  date          DateTime
+  startTime     String
+  endTime       String
+  purpose       String?
+  guestCount    Int           @default(1)
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(NOT_REQUIRED)
+  amountPaid    Decimal?      @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  amenity       Amenity       @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notice {
-  id          String   @id @default(cuid())
-  title       String
-  content     String
-  category    String
-  societyId   String
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  society     Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  creator     User     @relation("NoticeCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String
+  societyId String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  society   Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  creator   User     @relation("NoticeCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
 }
 
 model Complaint {
-  id          String          @id @default(cuid())
-  title       String
-  description String
-  category    String
-  status      ComplaintStatus @default(OPEN)
-  photo       String?
+  id            String          @id @default(cuid())
+  title         String
+  description   String
+  category      String
+  status        ComplaintStatus @default(OPEN)
+  photo         String?
   adminResponse String?
-  userId      String
-  societyId   String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  society     Society         @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  userId        String
+  societyId     String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  society       Society         @relation(fields: [societyId], references: [id], onDelete: Cascade)
 }
 
 model Visitor {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   name         String
   phone        String?
   vehiclePlate String?
   purpose      String
+  flatNumber   String
+  status       VisitorStatus @default(INSIDE)
+  isExpected   Boolean       @default(false)
+  expectedDate DateTime?
   userId       String
   societyId    String
-  entryTime    DateTime  @default(now())
+  apartmentId  String?
+  approvedById String?
+  entryTime    DateTime      @default(now())
   exitTime     DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  society      Society   @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  society      Society       @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  apartment    Apartment?    @relation(fields: [apartmentId], references: [id])
+  approvedBy   User?         @relation("ApprovedVisitor", fields: [approvedById], references: [id])
+}
+
+model ExpectedVisitor {
+  id              String   @id @default(cuid())
+  name            String
+  phone           String?
+  vehiclePlate    String?
+  purpose         String
+  expectedDate    DateTime
+  residentId      String
+  societyId       String
+  apartmentNumber String
+  isVisited       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  resident        User     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  society         Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
 }
 
 model Maintenance {
@@ -220,4 +305,36 @@ model InviteToken {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+}
+
+model GateEntry {
+  id            String          @id @default(cuid())
+  visitorName   String
+  visitorPhone  String
+  purpose       String
+  vehicleNumber String?
+  photo         String?
+  duration      String?
+  entryMethod   EntryMethod     @default(MANUAL)
+  apartmentId   String
+  apartment     Apartment       @relation(fields: [apartmentId], references: [id])
+  societyId     String
+  society       Society         @relation(fields: [societyId], references: [id])
+  guardId       String?
+  guard         User?           @relation("GuardEntries", fields: [guardId], references: [id])
+  status        GateEntryStatus @default(PENDING)
+  entryTime     DateTime?
+  exitTime      DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model GateQR {
+  id        String   @id @default(cuid())
+  societyId String
+  society   Society  @relation(fields: [societyId], references: [id])
+  gateName  String
+  token     String   @unique @default(cuid())
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

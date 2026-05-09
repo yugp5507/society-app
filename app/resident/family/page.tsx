@@ -282,8 +282,26 @@ export default function ResidentFamilyPage() {
         )}
         </main>
       {modalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            zIndex: 1001,
+            position: 'relative',
+          }}>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold text-[#1e3a5f]">
                 {editId ? "Edit Family Member" : "Add Family Member"}

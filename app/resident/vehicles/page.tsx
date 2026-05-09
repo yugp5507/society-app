@@ -286,119 +286,150 @@ export default function ResidentVehiclesPage() {
       )}
 
       {/* ── Add/Edit Modal ── */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">
-              {editId ? "Edit Vehicle" : "Add Vehicle"}
-            </h2>
+      {modalOpen && (() => {
+        const plateRegex = /^[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{4}$/;
+        const isPlateValid = !form.plateNumber || plateRegex.test(form.plateNumber);
+        const formSubmitDisabled = formDisabled || !isPlateValid;
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Vehicle Type
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {vehicleTypes.map((t) => {
-                    const active = form.type === t;
-                    const Icon = t === "Car" ? Car : Bike;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setForm({ ...form, type: t })}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
-                          active
-                            ? "bg-blue-50 border-blue-600 text-blue-700"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" /> {t}
-                      </button>
-                    );
-                  })}
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '500px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              zIndex: 1001,
+              position: 'relative',
+            }}>
+              <h2 className="text-xl font-bold text-slate-900 mb-6">
+                {editId ? "Edit Vehicle" : "Add Vehicle"}
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Vehicle Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {vehicleTypes.map((t) => {
+                      const active = form.type === t;
+                      const Icon = t === "Car" ? Car : Bike;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setForm({ ...form, type: t })}
+                          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-blue-50 border-blue-600 text-blue-700"
+                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" /> {t}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="brand">
-                  Brand & Model <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                  id="brand"
-                  type="text"
-                  value={form.brand}
-                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                  placeholder="e.g., Honda City, Activa 6G"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="plate">
-                  Plate Number
-                </label>
-                <input
-                  id="plate"
-                  type="text"
-                  value={form.plateNumber}
-                  onChange={(e) => setForm({ ...form, plateNumber: e.target.value.toUpperCase() })}
-                  placeholder="e.g., GJ05AB1234"
-                  required
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow font-mono uppercase"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Color
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {vehicleColors.map((c) => {
-                    const active = form.color === c;
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setForm({ ...form, color: c })}
-                        title={c}
-                        className={`w-8 h-8 rounded-full shadow-sm relative transition-transform hover:scale-110 ${colorStyles[c]} ${
-                          active ? "ring-2 ring-offset-2 ring-blue-600" : "ring-1 ring-slate-200"
-                        }`}
-                      >
-                        {/* Optionally add a checkmark for the active state */}
-                        {active && c === "White" && (
-                          <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-slate-900" />
-                        )}
-                        {active && c !== "White" && (
-                          <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white" />
-                        )}
-                      </button>
-                    );
-                  })}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="brand">
+                    Brand & Model <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    id="brand"
+                    type="text"
+                    value={form.brand}
+                    onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                    placeholder="e.g., Honda City, Activa 6G"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-shadow"
+                  />
                 </div>
-              </div>
 
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={formDisabled}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {submitting ? "Saving..." : "Save Vehicle"}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1" htmlFor="plate">
+                    Plate Number
+                  </label>
+                  <input
+                    id="plate"
+                    type="text"
+                    value={form.plateNumber}
+                    onChange={(e) => setForm({ ...form, plateNumber: e.target.value.toUpperCase().replace(/\s/g, '') })}
+                    placeholder="e.g., GJ05AB1234"
+                    required
+                    className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-shadow font-mono uppercase ${
+                      !isPlateValid ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-red-50 text-red-900' : 'border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                    }`}
+                  />
+                  {!isPlateValid && (
+                    <p className="text-xs text-red-600 mt-1.5 font-medium">
+                      Invalid format. Must be like GJ05AB1234.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Color
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {vehicleColors.map((c) => {
+                      const active = form.color === c;
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setForm({ ...form, color: c })}
+                          title={c}
+                          className={`w-8 h-8 rounded-full shadow-sm relative transition-transform hover:scale-110 ${colorStyles[c]} ${
+                            active ? "ring-2 ring-offset-2 ring-blue-600" : "ring-1 ring-slate-200"
+                          }`}
+                        >
+                          {active && c === "White" && (
+                            <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-slate-900" />
+                          )}
+                          {active && c !== "White" && (
+                            <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={formSubmitDisabled}
+                    className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  >
+                    {submitting ? "Saving..." : "Save Vehicle"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 }

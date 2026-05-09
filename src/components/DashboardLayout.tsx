@@ -1,7 +1,9 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
+import { getRoleLabel, getRoleColor } from '@/src/lib/auth-redirect'
 
 export type NavItem = {
   href: string
@@ -19,7 +21,28 @@ export default function DashboardLayout({
   role: string
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  const userName = session?.user?.name ?? role
+  const userRole = session?.user?.role ?? ''
+  const roleLabel = getRoleLabel(userRole)
+  const roleColor = getRoleColor(userRole)
+  // Initials from name
+  const initials = userName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    await signOut({ redirect: false })
+    router.replace('/login')
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F8FAFC' }}>
@@ -52,7 +75,17 @@ export default function DashboardLayout({
             }}>🏢</div>
             <div>
               <div style={{ color: 'white', fontWeight: 700, fontSize: '15px', lineHeight: 1.2 }}>SocietyPro</div>
-              <div style={{ color: '#64748B', fontSize: '11px', marginTop: '2px' }}>{role}</div>
+              {/* Role badge */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                marginTop: '4px', padding: '2px 8px', borderRadius: '20px',
+                background: roleColor + '22', border: `1px solid ${roleColor}44`,
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: roleColor, flexShrink: 0 }} />
+                <span style={{ color: roleColor, fontSize: '10px', fontWeight: 600, letterSpacing: '0.02em' }}>
+                  {roleLabel}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -88,11 +121,71 @@ export default function DashboardLayout({
           })}
         </nav>
 
+        {/* ── User info + Logout ── */}
+        <div style={{ padding: '12px', borderTop: '1px solid #1E293B', flexShrink: 0 }}>
+          {/* User card */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '10px 12px', borderRadius: '10px', background: '#1E293B',
+            marginBottom: '8px',
+          }}>
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '50%',
+              background: roleColor, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: 'white', fontWeight: 700,
+              fontSize: '13px', flexShrink: 0,
+            }}>
+              {initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                color: 'white', fontWeight: 600, fontSize: '13px',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {userName}
+              </div>
+              <div style={{ color: '#64748B', fontSize: '11px', marginTop: '1px' }}>
+                {session?.user?.email ?? ''}
+              </div>
+            </div>
+          </div>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: '8px', padding: '9px 12px', borderRadius: '8px',
+              background: 'transparent', border: '1px solid #334155',
+              color: '#94A3B8', fontSize: '13px', fontWeight: 500,
+              cursor: loggingOut ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+              opacity: loggingOut ? 0.6 : 1,
+            }}
+            onMouseEnter={e => {
+              if (!loggingOut) {
+                (e.currentTarget as HTMLButtonElement).style.background = '#EF444415'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#F87171'
+                ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#EF444440'
+              }
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+              ;(e.currentTarget as HTMLButtonElement).style.color = '#94A3B8'
+              ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#334155'
+            }}
+          >
+            <span style={{ fontSize: '15px' }}>🚪</span>
+            {loggingOut ? 'Signing out…' : 'Sign Out'}
+          </button>
+        </div>
+
         {/* Close button (mobile) */}
         <button
           onClick={() => setSidebarOpen(false)}
           style={{
-            margin: '12px', padding: '10px',
+            margin: '0 12px 12px', padding: '10px',
             background: '#1E293B', border: 'none',
             borderRadius: '8px', color: '#94A3B8',
             fontSize: '13px', cursor: 'pointer',
@@ -159,14 +252,30 @@ export default function DashboardLayout({
             SocietyPro
           </span>
           <div style={{ flex: 1 }} />
-          <div style={{
-            width: '36px', height: '36px',
-            borderRadius: '50%', background: '#EFF6FF',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#2563EB', fontWeight: 700, fontSize: '13px',
-            border: '2px solid #DBEAFE', cursor: 'pointer',
-          }}>
-            U
+
+          {/* User display in top nav */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {session?.user?.name && (
+              <div style={{ textAlign: 'right', display: 'none' }} className="sp-username">
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', lineHeight: 1.2 }}>
+                  {session.user.name}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748B' }}>{roleLabel}</div>
+              </div>
+            )}
+            <div
+              title={userName}
+              style={{
+                width: '36px', height: '36px',
+                borderRadius: '50%', background: roleColor + '1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: roleColor, fontWeight: 700, fontSize: '13px',
+                border: `2px solid ${roleColor}33`, cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
           </div>
         </div>
 
@@ -195,6 +304,9 @@ export default function DashboardLayout({
           }
           .sp-close-btn {
             display: none !important;
+          }
+          .sp-username {
+            display: block !important;
           }
         }
         @media (max-width: 767px) {

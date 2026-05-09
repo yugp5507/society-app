@@ -59,16 +59,27 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
+        token.id = user.id;
         token.role = user.role;
+        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
-        session.user.role = token.role;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).role = token.role;
+        session.user.name = token.name as string;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Role-based redirect is handled client-side via getDashboardPathByRole.
+      // Ensure relative/same-origin URLs are allowed; block external redirects.
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
   },
 };
