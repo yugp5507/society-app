@@ -15,10 +15,15 @@ export async function GET(req: Request) {
 
     if (!apartment?.resident) return NextResponse.json({ owner: null });
 
+    const maskPhone = (p: string) => {
+      if (!p || p.length < 5) return "XXXXX";
+      return p.substring(0, 2) + "XXXXX" + p.substring(p.length - 3);
+    };
+
     return NextResponse.json({
       owner: {
         name: apartment.resident.name,
-        phone: apartment.resident.phone || "Not Available"
+        phone: maskPhone(apartment.resident.phone || "")
       }
     });
   } catch (error) {

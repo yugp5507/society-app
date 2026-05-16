@@ -259,7 +259,7 @@ function GateEntryForm() {
                   <p className="text-slate-600 font-medium text-lg mb-8">Guard will verify your entry shortly.</p>
                 </>
               )}
-              {status === "APPROVED" && (
+              {(status === "APPROVED" || status === "INSIDE") && (
                 <>
                   <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CheckCircle2 className="w-14 h-14" />

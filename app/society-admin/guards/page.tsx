@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import QRCode from "react-qr-code";
-import { PlusCircle, Search, Trash2, Edit2, ShieldAlert, Key, Printer, Download } from "lucide-react";
+import { PlusCircle, Search, Trash2, Edit2, ShieldAlert, Key, Printer, Download, Copy, CheckCircle2, XCircle } from "lucide-react";
 
 export default function GuardsPage() {
   const [tab, setTab] = useState<"guards" | "qr">("guards");
@@ -12,10 +12,12 @@ export default function GuardsPage() {
 
   const [showGuardModal, setShowGuardModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [editingGuard, setEditingGuard] = useState<any>(null);
 
-  const [guardForm, setGuardForm] = useState({ name: "", email: "", phone: "", password: "", gate: "Main Gate", shift: "Morning (6 AM - 2 PM)" });
+  const [guardForm, setGuardForm] = useState({ name: "", email: "", phone: "", password: "", gateAssignment: "Main Gate", shift: "Morning (6 AM - 2 PM)", isActive: true });
   const [qrForm, setQrForm] = useState({ gateName: "" });
   const [saving, setSaving] = useState(false);
+  const [lastCreatedCredentials, setLastCreatedCredentials] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -43,19 +45,44 @@ export default function GuardsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("/api/guards", {
-        method: "POST",
+      const url = editingGuard ? `/api/guards/${editingGuard.id}` : "/api/guards";
+      const method = editingGuard ? "PUT" : "POST";
+      
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(guardForm),
       });
+      
       if (!res.ok) throw new Error("Failed to save");
+      
+      if (!editingGuard) {
+        setLastCreatedCredentials({ email: guardForm.email, password: guardForm.password });
+      }
+
       await loadData();
-      setShowGuardModal(false);
-      setGuardForm({ name: "", email: "", phone: "", password: "", gate: "Main Gate", shift: "Morning (6 AM - 2 PM)" });
+      if (editingGuard) {
+        setShowGuardModal(false);
+        setEditingGuard(null);
+      }
+      setGuardForm({ name: "", email: "", phone: "", password: "", gateAssignment: "Main Gate", shift: "Morning (6 AM - 2 PM)", isActive: true });
     } catch (err) {
       alert("Error saving guard");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleGuardStatus = async (guard: any) => {
+    try {
+      await fetch(`/api/guards/${guard.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...guard, isActive: !guard.isActive }),
+      });
+      await loadData();
+    } catch (err) {
+      alert("Error toggling status");
     }
   };
 
@@ -89,6 +116,19 @@ export default function GuardsPage() {
     }
   };
 
+  const toggleQRStatus = async (qr: any) => {
+    try {
+      await fetch(`/api/qr/${qr.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !qr.isActive }),
+      });
+      await loadData();
+    } catch (err) {
+      alert("Error toggling status");
+    }
+  };
+
   const regenerateQR = async (id: string) => {
     if (!confirm("Regenerate token? Old QR will become invalid!")) return;
     try {
@@ -115,33 +155,49 @@ export default function GuardsPage() {
         <head>
           <title>Print QR - ${qr.gateName}</title>
           <style>
-            body { font-family: sans-serif; text-align: center; padding: 40px; }
-            .container { border: 4px solid #1e293b; padding: 40px; max-width: 600px; margin: 0 auto; border-radius: 24px; }
-            h1 { font-size: 36px; margin: 0 0 10px 0; color: #0f172a; }
-            .subtitle { font-size: 24px; color: #475569; margin-bottom: 40px; font-weight: bold; }
-            .gate { font-size: 28px; background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 40px; color: #1e293b; font-weight: bold; }
-            .qr-wrapper { padding: 20px; background: white; border: 2px solid #e2e8f0; display: inline-block; border-radius: 16px; margin-bottom: 30px; }
-            .instructions { font-size: 22px; font-weight: bold; color: #334155; margin-bottom: 10px; }
-            .hindi { font-size: 24px; color: #1e293b; font-weight: bold; margin-bottom: 40px; }
-            .logo { font-size: 24px; font-weight: 900; color: #2563eb; }
+            @media print { @page { size: A4; margin: 0; } body { margin: 0; } }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #fff; padding: 40px; }
+            .container { border: 15px solid #1e293b; padding: 60px 40px; max-width: 700px; margin: 0 auto; border-radius: 40px; min-height: 90vh; display: flex; flex-direction: column; justify-content: space-between; }
+            h1 { font-size: 48px; margin: 0; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+            .subtitle { font-size: 28px; color: #475569; margin: 20px 0 40px 0; font-weight: 600; }
+            .gate { font-size: 32px; background: #1e293b; padding: 15px 30px; border-radius: 20px; margin-bottom: 50px; color: #fff; font-weight: 800; display: inline-block; }
+            .qr-wrapper { padding: 30px; background: white; border: 4px solid #e2e8f0; display: inline-block; border-radius: 30px; margin-bottom: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+            .instructions { font-size: 26px; font-weight: 800; color: #1e293b; margin-bottom: 5px; }
+            .hindi { font-size: 28px; color: #334155; font-weight: 700; margin-bottom: 50px; }
+            .footer { border-top: 2px solid #f1f5f9; padding-top: 30px; margin-top: auto; }
+            .logo { font-size: 28px; font-weight: 900; color: #2563eb; }
           </style>
         </head>
         <body>
           <div class="container">
-            <h1>${qr.society?.name || "Society"}</h1>
-            <div class="subtitle">Visitor Entry | विज़िटर एंट्री</div>
-            <div class="gate">${qr.gateName}</div>
-            <div class="qr-wrapper">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}" alt="QR" width="300" height="300" />
+            <div>
+              <h1>${qr.society?.name || "Society"}</h1>
+              <div class="subtitle">Visitor Entry | विज़िटर एंट्री</div>
             </div>
-            <div class="instructions">Scan to register your visit</div>
-            <div class="hindi">अपनी विज़िट दर्ज करने के लिए स्कैन करें</div>
-            <div class="logo">🏢 SocietyPro</div>
+            <div>
+              <div class="gate">${qr.gateName}</div>
+              <br/>
+              <div class="qr-wrapper">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(url)}" alt="QR" width="400" height="400" />
+              </div>
+            </div>
+            <div class="footer">
+              <div class="instructions">Scan to register your visit</div>
+              <div class="hindi">अपनी विज़िट दर्ज करने के लिए स्कैन करें</div>
+              <div class="logo">🏢 SocietyPro</div>
+            </div>
           </div>
-          <script>window.onload = () => window.print();</script>
+          <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); };</script>
         </body>
       </html>
     `);
+  };
+
+  const copyCredentials = () => {
+    if (!lastCreatedCredentials) return;
+    const text = `Guard Login Credentials:\nEmail: ${lastCreatedCredentials.email}\nPassword: ${lastCreatedCredentials.password}`;
+    navigator.clipboard.writeText(text);
+    alert("Credentials copied to clipboard!");
   };
 
   const inp = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors text-slate-900";
@@ -156,7 +212,15 @@ export default function GuardsPage() {
         </div>
         <div className="flex gap-2">
           {tab === "guards" ? (
-            <button onClick={() => setShowGuardModal(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 shadow-sm text-sm">
+            <button 
+              onClick={() => {
+                setEditingGuard(null);
+                setGuardForm({ name: "", email: "", phone: "", password: "", gateAssignment: "Main Gate", shift: "Morning (6 AM - 2 PM)", isActive: true });
+                setLastCreatedCredentials(null);
+                setShowGuardModal(true);
+              }} 
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 shadow-sm text-sm"
+            >
               <PlusCircle className="w-4 h-4" /> Add Guard
             </button>
           ) : (
@@ -193,36 +257,60 @@ export default function GuardsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
+              <table className="w-full text-sm min-w-[800px]">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     <th className="px-5 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-xs">Guard Details</th>
                     <th className="px-5 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-xs">Gate & Shift</th>
+                    <th className="px-5 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-xs">Status</th>
                     <th className="px-5 py-4 text-right font-semibold text-slate-500 uppercase tracking-wider text-xs">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {guards.map(g => (
-                    <tr key={g.id} className="hover:bg-slate-50/50">
+                    <tr key={g.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100">
                             {g.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <div className="font-bold text-slate-900">{g.name}</div>
-                            <div className="text-xs text-slate-500">{g.phone || g.email}</div>
+                            <div className="text-xs text-slate-500">{g.email}</div>
+                            <div className="text-xs text-slate-400">{g.phone}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-700">{g.gateAssignment || "Not Assigned"}</div>
-                        <div className="text-xs text-slate-500">{g.shift || "—"}</div>
+                        <div className="font-semibold text-slate-700">{g.gateAssignment || "Main Gate"}</div>
+                        <div className="text-xs text-slate-500">{g.shift || "Morning Shift"}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <button 
+                          onClick={() => toggleGuardStatus(g)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${g.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full ${g.isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          {g.isActive ? "ACTIVE" : "INACTIVE"}
+                        </button>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button onClick={() => deleteGuard(g.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex justify-end gap-1">
+                          <button 
+                            onClick={() => {
+                              setEditingGuard(g);
+                              setGuardForm({ ...g, password: "" });
+                              setLastCreatedCredentials(null);
+                              setShowGuardModal(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => deleteGuard(g.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -236,16 +324,24 @@ export default function GuardsPage() {
           {gateQRs.map(qr => {
             const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/gate-entry?token=${qr.token}`;
             return (
-              <div key={qr.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center">
-                <h3 className="font-bold text-lg text-slate-900 mb-4">{qr.gateName}</h3>
-                <div className="bg-white p-4 border-2 border-slate-100 rounded-2xl mb-4">
-                  <QRCode value={url} size={150} />
+              <div key={qr.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center group hover:shadow-md transition-shadow">
+                <div className="w-full flex justify-between items-start mb-4">
+                  <h3 className="font-bold text-lg text-slate-900">{qr.gateName}</h3>
+                  <button 
+                    onClick={() => toggleQRStatus(qr)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${qr.isActive ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}
+                  >
+                    {qr.isActive ? 'Active' : 'Inactive'}
+                  </button>
                 </div>
-                <div className="flex gap-2 w-full mt-auto">
-                  <button onClick={() => printQR(qr)} className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800">
+                <div className="bg-white p-4 border-2 border-slate-100 rounded-2xl mb-6 group-hover:border-blue-200 transition-colors">
+                  <QRCode value={url} size={160} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <button onClick={() => printQR(qr)} className="flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors">
                     <Printer className="w-4 h-4" /> Print
                   </button>
-                  <button onClick={() => regenerateQR(qr.id)} className="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50">
+                  <button onClick={() => regenerateQR(qr.id)} className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
                     Regenerate
                   </button>
                 </div>
@@ -253,8 +349,8 @@ export default function GuardsPage() {
             );
           })}
           {gateQRs.length === 0 && (
-            <div className="col-span-full text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
-              <p className="font-medium">No Gate QR Codes generated</p>
+            <div className="col-span-full text-center py-16 text-slate-400 bg-white rounded-2xl border-2 border-slate-100 border-dashed">
+              <p className="font-medium">No Gate QR Codes generated yet.</p>
             </div>
           )}
         </div>
@@ -262,59 +358,106 @@ export default function GuardsPage() {
 
       {/* Modals */}
       {showGuardModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', zIndex: 1001, position: 'relative' }}>
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md">
-              <h2 className="font-bold text-lg">Add Security Guard</h2>
-              <button onClick={() => setShowGuardModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <form onSubmit={saveGuard} className="p-6 space-y-4">
-              <div><label className={lbl}>Full Name *</label><input required value={guardForm.name} onChange={e => setGuardForm({...guardForm, name: e.target.value})} className={inp} placeholder="Ramesh Singh" /></div>
-              <div><label className={lbl}>Email *</label><input type="email" required value={guardForm.email} onChange={e => setGuardForm({...guardForm, email: e.target.value})} className={inp} placeholder="guard@society.com" /></div>
-              <div><label className={lbl}>Phone *</label><input type="tel" required value={guardForm.phone} onChange={e => setGuardForm({...guardForm, phone: e.target.value})} className={inp} placeholder="9876543210" /></div>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
               <div>
-                <label className={lbl}>Password *</label>
-                <div className="flex gap-2">
-                  <input required value={guardForm.password} onChange={e => setGuardForm({...guardForm, password: e.target.value})} className={inp} placeholder="Password" />
-                  <button type="button" onClick={generatePassword} className="px-4 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200">Auto</button>
-                </div>
+                <h2 className="font-black text-xl text-slate-900">{editingGuard ? "Edit Security Guard" : "Add Security Guard"}</h2>
+                <p className="text-xs text-slate-500 font-medium">Set up gate access and shift timings</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={lbl}>Gate Assignment</label>
-                  <select value={guardForm.gate} onChange={e => setGuardForm({...guardForm, gate: e.target.value})} className={inp}>
-                    {["Main Gate", "Back Gate", "East Gate", "West Gate", "Parking Gate"].map(g => <option key={g}>{g}</option>)}
-                  </select>
+              <button onClick={() => setShowGuardModal(false)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-slate-600 rounded-full transition-colors">✕</button>
+            </div>
+
+            <div className="overflow-y-auto p-8">
+              {lastCreatedCredentials && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                  <p className="text-blue-800 font-bold text-sm mb-2">Guard Created Successfully!</p>
+                  <div className="bg-white p-3 rounded-xl border border-blue-100 mb-3 font-mono text-sm">
+                    <div>Email: <span className="font-bold text-slate-900">{lastCreatedCredentials.email}</span></div>
+                    <div>Pass: <span className="font-bold text-slate-900">{lastCreatedCredentials.password}</span></div>
+                  </div>
+                  <button onClick={copyCredentials} className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700">
+                    <Copy className="w-3.5 h-3.5" /> Copy Credentials
+                  </button>
                 </div>
-                <div>
-                  <label className={lbl}>Shift</label>
-                  <select value={guardForm.shift} onChange={e => setGuardForm({...guardForm, shift: e.target.value})} className={inp}>
-                    {["Morning (6 AM - 2 PM)", "Evening (2 PM - 10 PM)", "Night (10 PM - 6 AM)", "24 Hours"].map(s => <option key={s}>{s}</option>)}
-                  </select>
+              )}
+
+              <form onSubmit={saveGuard} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className={lbl}>Full Name *</label>
+                    <input required value={guardForm.name} onChange={e => setGuardForm({...guardForm, name: e.target.value})} className={inp} placeholder="Ramesh Singh" />
+                  </div>
+                  <div>
+                    <label className={lbl}>Email Address *</label>
+                    <input type="email" required value={guardForm.email} onChange={e => setGuardForm({...guardForm, email: e.target.value})} className={inp} placeholder="ramesh@society.com" />
+                  </div>
+                  <div>
+                    <label className={lbl}>Phone Number *</label>
+                    <input type="tel" required value={guardForm.phone} onChange={e => setGuardForm({...guardForm, phone: e.target.value})} className={inp} placeholder="9876543210" />
+                  </div>
                 </div>
-              </div>
-              <button type="submit" disabled={saving} className="w-full mt-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50">
-                {saving ? "Saving..." : "Add Guard"}
-              </button>
-            </form>
+
+                {!editingGuard && (
+                  <div>
+                    <label className={lbl}>Access Password *</label>
+                    <div className="flex gap-2">
+                      <input required value={guardForm.password} onChange={e => setGuardForm({...guardForm, password: e.target.value})} className={inp} placeholder="Enter or Generate" />
+                      <button type="button" onClick={generatePassword} className="px-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Auto</button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={lbl}>Gate Assignment</label>
+                    <select value={guardForm.gateAssignment} onChange={e => setGuardForm({...guardForm, gateAssignment: e.target.value})} className={inp}>
+                      {["Main Gate", "Back Gate", "East Gate", "West Gate", "Parking Gate"].map(g => <option key={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Shift Timing</label>
+                    <select value={guardForm.shift} onChange={e => setGuardForm({...guardForm, shift: e.target.value})} className={inp}>
+                      {["Morning (6 AM - 2 PM)", "Evening (2 PM - 10 PM)", "Night (10 PM - 6 AM)", "24 Hours"].map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <input 
+                    type="checkbox" 
+                    id="active" 
+                    checked={guardForm.isActive} 
+                    onChange={e => setGuardForm({...guardForm, isActive: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="active" className="text-sm font-bold text-slate-700">Guard Account is Active</label>
+                </div>
+
+                <button type="submit" disabled={saving} className="w-full mt-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-200 transition-all active:scale-95">
+                  {saving ? "Processing..." : editingGuard ? "Update Guard" : "Create Guard Account"}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {showQRModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', zIndex: 1001, position: 'relative' }}>
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="font-bold text-lg">Generate Gate QR</h2>
-              <button onClick={() => setShowQRModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+              <h2 className="font-black text-xl text-slate-900">New Gate QR</h2>
+              <button onClick={() => setShowQRModal(false)} className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-slate-600 rounded-full transition-colors">✕</button>
             </div>
-            <form onSubmit={saveQR} className="p-6 space-y-4">
+            <form onSubmit={saveQR} className="p-8 space-y-6">
               <div>
-                <label className={lbl}>Gate Name *</label>
-                <input required value={qrForm.gateName} onChange={e => setQrForm({...qrForm, gateName: e.target.value})} className={inp} placeholder="Main Gate" />
+                <label className={lbl}>Gate Location / Name *</label>
+                <input required value={qrForm.gateName} onChange={e => setQrForm({...qrForm, gateName: e.target.value})} className={inp} placeholder="e.g. South Entry Gate" />
+                <p className="mt-2 text-xs text-slate-400 font-medium">This name will appear on the printed QR poster.</p>
               </div>
-              <button type="submit" disabled={saving} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50">
-                {saving ? "Generating..." : "Generate QR Code"}
+              <button type="submit" disabled={saving} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-200 transition-all active:scale-95">
+                {saving ? "Generating..." : "Generate Poster QR"}
               </button>
             </form>
           </div>
@@ -323,3 +466,4 @@ export default function GuardsPage() {
     </div>
   );
 }
+

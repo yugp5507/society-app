@@ -1,4 +1,4 @@
-import { ComplaintStatus, UserRole } from "@prisma/client";
+import { ComplaintStatus, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -23,7 +23,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.role !== UserRole.SOCIETY_ADMIN) {
+  if (!session?.user?.id || session.user.role !== Role.SOCIETY_ADMIN) {
     return NextResponse.json({ message: "Only society admins can update complaints" }, { status: 403 });
   }
 

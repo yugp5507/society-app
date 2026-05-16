@@ -12,7 +12,7 @@ datasource db {
   
 }
 
-enum UserRole {
+enum Role {
   SUPER_ADMIN
   SOCIETY_ADMIN
   SUB_ADMIN
@@ -51,6 +51,7 @@ enum MaintenanceStatus {
   PENDING
   PAID
   OVERDUE
+  PARTIAL
 }
 
 enum VisitorStatus {
@@ -75,27 +76,38 @@ enum EntryMethod {
 }
 
 model User {
-  id                String            @id @default(cuid())
-  name              String
-  email             String            @unique
-  password          String
-  phone             String?
-  role              UserRole          @default(RESIDENT)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  societies         Society[]         @relation("SocietyAdmin")
-  apartments        Apartment[]       @relation("ApartmentResident")
-  subAdminBuildings Building[]        @relation("BuildingSubAdmin")
-  bookings          Booking[]
-  complaints        Complaint[]
-  visitors          Visitor[]
-  maintenances      Maintenance[]
-  noticesCreated    Notice[]          @relation("NoticeCreatedBy")
-  approvedVisitors  Visitor[]         @relation("ApprovedVisitor")
-  expectedVisitors  ExpectedVisitor[]
-  gateEntries       GateEntry[]       @relation("GuardEntries")
-  societyId         String?
-  society           Society?          @relation("GuardSociety", fields: [societyId], references: [id])
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      Role     @default(RESIDENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  apartment    Apartment?    @relation("ApartmentResident")
+  notices      Notice[]
+  complaints   Complaint[]
+  bookings     Booking[]
+  visitors     Visitor[]
+  guardProfile GuardProfile?
+  gateEntries  GateEntry[]   @relation("GuardEntries")
+  adminSociety Society?      @relation("SocietyAdmin")
+  maintenances Maintenance[]
+}
+
+model GuardProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  societyId      String
+  society        Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  gateAssignment String?
+  shift          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Society {
@@ -103,7 +115,7 @@ model Society {
   name             String
   address          String
   city             String
-  adminId          String
+  adminId          String            @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   admin            User              @relation("SocietyAdmin", fields: [adminId], references: [id])
@@ -116,7 +128,7 @@ model Society {
   expectedVisitors ExpectedVisitor[]
   gateEntries      GateEntry[]
   gateQRs          GateQR[]
-  guards           User[]            @relation("GuardSociety")
+  guards           GuardProfile[]
 }
 
 model Building {
@@ -127,7 +139,6 @@ model Building {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   society    Society     @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  subAdmin   User?       @relation("BuildingSubAdmin", fields: [subAdminId], references: [id])
   apartments Apartment[]
 }
 
@@ -136,7 +147,7 @@ model Apartment {
   number        String
   floor         Int
   buildingId    String
-  residentId    String?
+  residentId    String?           @unique
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   building      Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
@@ -146,6 +157,7 @@ model Apartment {
   inviteTokens  InviteToken[]
   visitors      Visitor[]
   gateEntries   GateEntry[]
+  maintenances  Maintenance[]
 }
 
 model FamilyMember {
@@ -221,7 +233,7 @@ model Notice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   society   Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
-  creator   User     @relation("NoticeCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  creator   User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 }
 
 model Complaint {
@@ -261,7 +273,6 @@ model Visitor {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   society      Society       @relation(fields: [societyId], references: [id], onDelete: Cascade)
   apartment    Apartment?    @relation(fields: [apartmentId], references: [id])
-  approvedBy   User?         @relation("ApprovedVisitor", fields: [approvedById], references: [id])
 }
 
 model ExpectedVisitor {
@@ -277,23 +288,30 @@ model ExpectedVisitor {
   isVisited       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  resident        User     @relation(fields: [residentId], references: [id], onDelete: Cascade)
   society         Society  @relation(fields: [societyId], references: [id], onDelete: Cascade)
 }
 
 model Maintenance {
-  id        String            @id @default(cuid())
-  amount    Decimal           @db.Decimal(10, 2)
-  month     Int
-  year      Int
-  status    MaintenanceStatus @default(PENDING)
-  userId    String
-  societyId String
-  paidAt    DateTime?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  society   Society           @relation(fields: [societyId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  amount            Float
+  month             Int
+  year              Int
+  dueDate           DateTime
+  status            MaintenanceStatus @default(PENDING)
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  societyId         String
+  society           Society           @relation(fields: [societyId], references: [id])
+  apartmentId       String
+  apartment         Apartment         @relation(fields: [apartmentId], references: [id])
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  paidAt            DateTime?
+  receiptUrl        String?
+  penaltyAmount     Float?            @default(0)
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model InviteToken {
@@ -338,3 +356,4 @@ model GateQR {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+

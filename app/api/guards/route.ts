@@ -1,68 +1,126 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/src/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/src/lib/auth";
-import bcrypt from "bcryptjs";
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/src/lib/auth'
+import { prisma } from '@/src/lib/prisma'
+import bcrypt from 'bcryptjs'
 
-// GET /api/guards
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id || session.user.role !== "SOCIETY_ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const society = await prisma.society.findFirst({ where: { adminId: session.user.id } });
-    if (!society) return NextResponse.json({ guards: [] });
+    // Find society where this user is admin
+    const society = await prisma.society.findFirst({
+      where: { adminId: session.user.id }
+    })
 
-    // Guards are users with role SECURITY_GUARD and maybe we need to link them to society.
-    // For now we can fetch users by role, and assume they are created by this admin.
-    // To properly scope, we might need a custom field or just fetch all SECURITY_GUARDs for now.
-    // Let's use a convention: their name includes society ID or similar? 
-    // Wait, the User model doesn't link directly to society except for specific roles.
-    // For this prototype, let's fetch all SECURITY_GUARDs.
-    // Or, we can just return users with role SECURITY_GUARD.
-    
-    // Actually, we can just fetch users with SECURITY_GUARD role for now.
-    const guards = await prisma.user.findMany({
-      where: { role: "SECURITY_GUARD" },
-      orderBy: { createdAt: "desc" },
-    });
+    if (!society) {
+      return Response.json({ guards: [] })
+    }
 
-    return NextResponse.json({ guards });
+    const guardProfiles = await prisma.guardProfile.findMany({
+      where: { societyId: society.id },
+      include: { user: true }
+    })
+
+    const guards = guardProfiles.map(gp => ({
+      id: gp.user.id,
+      name: gp.user.name,
+      email: gp.user.email,
+      phone: gp.user.phone,
+      gateAssignment: gp.gateAssignment,
+      shift: gp.shift,
+      isActive: gp.isActive,
+      guardProfileId: gp.id,
+    }))
+
+    return Response.json({ guards })
+
   } catch (error) {
-    return NextResponse.json({ error: "Error" }, { status: 500 });
+    console.error('GET guards error:', error)
+    return Response.json({ error: 'Failed to fetch guards' }, { status: 500 })
   }
 }
 
-// POST /api/guards
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id || session.user.role !== "SOCIETY_ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const society = await prisma.society.findFirst({ where: { adminId: session.user.id } });
-    if (!society) return NextResponse.json({ error: "Society not found" }, { status: 404 });
+    const body = await request.json()
+    const { name, email, phone, password, gateAssignment, shift } = body
 
-    const { name, email, phone, password, gate, shift } = await req.json();
+    if (!name || !email || !phone || !password) {
+      return Response.json({ error: 'All fields required' }, { status: 400 })
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Find society for this admin
+    const society = await prisma.society.findFirst({
+      where: { adminId: session.user.id }
+    })
 
-    const guard = await prisma.user.create({
+    if (!society) {
+      return Response.json(
+        { error: 'No society found. Please contact Super Admin.' }, 
+        { status: 400 }
+      )
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (existingUser) {
+      return Response.json(
+        { error: 'Email already registered' }, 
+        { status: 400 }
+      )
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create user WITHOUT societyId
+    const user = await prisma.user.create({
       data: {
         name,
         email,
         phone,
         password: hashedPassword,
-        role: "SECURITY_GUARD",
-        societyId: society.id,
-      },
-    });
+        role: 'SECURITY_GUARD',
+      }
+    })
 
-    return NextResponse.json({ guard });
+    // Create guard profile with societyId
+    const guardProfile = await prisma.guardProfile.create({
+      data: {
+        userId: user.id,
+        societyId: society.id,
+        gateAssignment: gateAssignment || 'Main Gate',
+        shift: shift || 'Morning (6 AM - 2 PM)',
+        isActive: true,
+      }
+    })
+
+    return Response.json({ 
+      success: true,
+      message: 'Guard created successfully',
+      guard: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        gateAssignment: guardProfile.gateAssignment,
+        shift: guardProfile.shift,
+        isActive: guardProfile.isActive,
+      }
+    })
+
   } catch (error) {
-    return NextResponse.json({ error: "Error" }, { status: 500 });
+    console.error('POST guard error:', error)
+    return Response.json({ error: 'Failed to create guard' }, { status: 500 })
   }
 }

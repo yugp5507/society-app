@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         email,
         phone,
         password: hashedPassword,
-        role: role as UserRole,
+        role: role as Role,
       },
       select: { id: true },
     });

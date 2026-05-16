@@ -89,7 +89,17 @@ export default function Sidebar({
   const brand = BRAND[variant];
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [maintenanceCount, setMaintenanceCount] = useState<number | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+    if (variant === "society-admin") {
+      fetch("/api/maintenance/all?status=PENDING")
+        .then(r => r.json())
+        .then(d => setMaintenanceCount(d.maintenance?.length || 0))
+        .catch(() => {});
+    }
+  }, [variant]);
 
   function isActive(href: string) {
     if (pathname === href) return true;
@@ -124,6 +134,8 @@ export default function Sidebar({
         {items.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
+          const showBadge = item.label === "Maintenance" && variant === "society-admin" && maintenanceCount !== null && maintenanceCount > 0;
+          
           return (
             <Link
               key={item.href}
@@ -136,7 +148,12 @@ export default function Sidebar({
               }`}
             >
               <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : "text-slate-500 group-hover:text-white"}`} />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate flex-1">{item.label}</span>
+              {showBadge && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 min-w-[20px] text-center">
+                  {maintenanceCount}
+                </span>
+              )}
             </Link>
           );
         })}

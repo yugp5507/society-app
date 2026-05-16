@@ -10,11 +10,14 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const guard = await prisma.user.findUnique({ where: { id: session.user.id } });
-    if (!guard?.societyId) return NextResponse.json({ entries: [] });
+    const guard = await prisma.user.findUnique({ 
+      where: { id: session.user.id },
+      include: { guardProfile: true }
+    });
+    if (!guard?.guardProfile?.societyId) return NextResponse.json({ entries: [] });
 
     const entries = await prisma.gateEntry.findMany({
-      where: { status: "PENDING", societyId: guard.societyId },
+      where: { status: "PENDING", societyId: guard.guardProfile.societyId },
       include: { apartment: { include: { building: true } } },
       orderBy: { createdAt: "desc" }
     });

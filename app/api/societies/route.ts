@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         phone: admin.phone,
         password: hashedPassword,
         role: "SOCIETY_ADMIN",
-        societies: {
+        adminSociety: {
           create: {
             name: society.name,
             address: society.address,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         },
       },
       include: {
-        societies: {
+        adminSociety: {
           include: {
             admin: { select: { name: true, email: true } },
             buildings: { select: { id: true } },
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const createdSociety = newUser.societies[0];
+    const createdSociety = newUser.adminSociety;
 
     return NextResponse.json(createdSociety, { status: 201 });
   } catch (error) {

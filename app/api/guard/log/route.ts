@@ -15,13 +15,16 @@ export async function GET() {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const guard = await prisma.user.findUnique({ where: { id: session.user.id } });
-    if (!guard?.societyId) return NextResponse.json({ entries: [] });
+    const guard = await prisma.user.findUnique({ 
+      where: { id: session.user.id },
+      include: { guardProfile: true }
+    });
+    if (!guard?.guardProfile?.societyId) return NextResponse.json({ entries: [] });
 
     const entries = await prisma.gateEntry.findMany({
       where: { 
         createdAt: { gte: start, lte: end },
-        societyId: guard.societyId
+        societyId: guard.guardProfile.societyId
       },
       include: { apartment: { include: { building: true } } },
       orderBy: { createdAt: "desc" }

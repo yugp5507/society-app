@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { ComplaintStatus, UserRole } from "@prisma/client";
+import { ComplaintStatus, Role } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -45,9 +45,8 @@ export async function GET(request: Request) {
         select: {
           id: true,
           name: true,
-          apartments: {
+          apartment: {
             select: { number: true },
-            take: 1,
           },
         },
       },
@@ -66,14 +65,14 @@ export async function GET(request: Request) {
       createdAt: complaint.createdAt,
       updatedAt: complaint.updatedAt,
       residentName: complaint.user.name,
-      apartmentNumber: complaint.user.apartments[0]?.number ?? "N/A",
+      apartmentNumber: complaint.user.apartment?.number ?? "N/A",
     })),
   });
 }
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session.user.role !== UserRole.RESIDENT) {
+  if (!session?.user?.id || session.user.role !== Role.RESIDENT) {
     return NextResponse.json({ message: "Only residents can create complaints" }, { status: 403 });
   }
 
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
   const resident = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
-      apartments: {
+      apartment: {
         select: {
           building: {
             select: {
@@ -101,12 +100,11 @@ export async function POST(request: Request) {
             },
           },
         },
-        take: 1,
       },
     },
   });
 
-  const societyId = resident?.apartments[0]?.building.societyId;
+  const societyId = resident?.apartment?.building.societyId;
   if (!societyId) {
     return NextResponse.json(
       { message: "Resident is not mapped to an apartment/society yet" },

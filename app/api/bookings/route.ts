@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       include: {
         amenity: { select: { id: true, name: true, location: true, isPaid: true, pricePerSlot: true } },
         user: { select: { id: true, name: true, email: true, phone: true,
-          apartments: { select: { number: true }, take: 1 } } },
+          apartment: { select: { number: true } } } },
       },
       orderBy: { date: "desc" },
       take: 200,

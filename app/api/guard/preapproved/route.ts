@@ -15,8 +15,11 @@ export async function GET() {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const guard = await prisma.user.findUnique({ where: { id: session.user.id } });
-    if (!guard?.societyId) return NextResponse.json({ entries: [] });
+    const guard = await prisma.user.findUnique({ 
+      where: { id: session.user.id },
+      include: { guardProfile: true }
+    });
+    if (!guard?.guardProfile?.societyId) return NextResponse.json({ entries: [] });
 
     // Using Visitor model since residents create pre-approved visitors there
     const entries = await prisma.visitor.findMany({
@@ -24,7 +27,7 @@ export async function GET() {
         isExpected: true,
         status: "APPROVED",
         expectedDate: { gte: start, lte: end },
-        societyId: guard.societyId
+        societyId: guard.guardProfile.societyId
       },
       include: { apartment: { include: { building: true } } },
       orderBy: { expectedDate: "asc" }
