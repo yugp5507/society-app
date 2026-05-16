@@ -1,35 +1,104 @@
-import { Bell, Car, IndianRupee, FileText, CalendarCheck, Users } from "lucide-react";
+"use client";
 
 const features = [
-  { icon: Bell, title: "Notice Board", desc: "Instant announcements to all residents", color: "bg-blue-50 text-blue-600" },
-  { icon: Car, title: "Visitor Management", desc: "Track every entry and exit", color: "bg-violet-50 text-violet-600" },
-  { icon: IndianRupee, title: "Maintenance Payments", desc: "Online payments with receipts", color: "bg-emerald-50 text-emerald-600" },
-  { icon: FileText, title: "Complaint System", desc: "Raise and track complaints easily", color: "bg-amber-50 text-amber-600" },
-  { icon: CalendarCheck, title: "Amenity Booking", desc: "Book clubhouse, gym, ground", color: "bg-rose-50 text-rose-600" },
-  { icon: Users, title: "Family Management", desc: "Add family members and vehicles", color: "bg-cyan-50 text-cyan-600" },
+  {
+    emoji: "🔔",
+    title: "Smart Notice Board",
+    description: "Send announcements to all residents instantly with push notifications and read receipts.",
+    color: "bg-blue-50",
+    iconBg: "bg-blue-100",
+    border: "border-blue-100",
+    accent: "text-blue-600",
+  },
+  {
+    emoji: "🚗",
+    title: "Visitor Management",
+    description: "Track every entry with our QR code system. Residents approve visits from their phone.",
+    color: "bg-violet-50",
+    iconBg: "bg-violet-100",
+    border: "border-violet-100",
+    accent: "text-violet-600",
+  },
+  {
+    emoji: "💰",
+    title: "Online Maintenance",
+    description: "Collect payments via UPI, cards & net banking. Automated reminders and receipts.",
+    color: "bg-emerald-50",
+    iconBg: "bg-emerald-100",
+    border: "border-emerald-100",
+    accent: "text-emerald-600",
+  },
+  {
+    emoji: "📝",
+    title: "Complaint System",
+    description: "Raise and track complaints with real-time status updates. Nothing falls through the cracks.",
+    color: "bg-amber-50",
+    iconBg: "bg-amber-100",
+    border: "border-amber-100",
+    accent: "text-amber-600",
+  },
+  {
+    emoji: "🏊",
+    title: "Amenity Booking",
+    description: "Book clubhouse, gym & ground online. Prevent conflicts with a shared calendar.",
+    color: "bg-cyan-50",
+    iconBg: "bg-cyan-100",
+    border: "border-cyan-100",
+    accent: "text-cyan-600",
+  },
+  {
+    emoji: "👮",
+    title: "Security Guard Panel",
+    description: "Digital gate entry with QR codes. Guards manage visitors from a dedicated dashboard.",
+    color: "bg-rose-50",
+    iconBg: "bg-rose-100",
+    border: "border-rose-100",
+    accent: "text-rose-600",
+  },
 ];
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-20 bg-white">
+    <section id="features" className="py-20 md:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">Features</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">Everything your society needs</h2>
-          <p className="text-slate-600 max-w-2xl mx-auto text-lg">One platform to manage your entire residential community — from notices to payments.</p>
+        {/* Header */}
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-4
+            bg-blue-50 border border-blue-200 text-blue-700">
+            ✨ Packed with Features
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+            Everything your society needs
+          </h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+            One platform for residents, admins and security — designed for the way Indian societies work.
+          </p>
         </div>
+
+        {/* Feature cards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map(({ icon: Icon, title, desc, color }) => (
-            <div key={title} className="group relative bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-300">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}>
-                <Icon className="w-6 h-6" />
+          {features.map((f) => (
+            <div
+              key={f.title}
+              className={`group relative rounded-2xl border ${f.border} ${f.color} p-6
+                hover:shadow-xl hover:shadow-slate-900/8 hover:-translate-y-1.5
+                transition-all duration-300 cursor-default`}
+            >
+              {/* Icon */}
+              <div className={`w-12 h-12 ${f.iconBg} rounded-xl flex items-center justify-center text-2xl mb-4 shadow-sm`}>
+                {f.emoji}
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
-              <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-                </div>
+
+              {/* Content */}
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{f.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{f.description}</p>
+
+              {/* Hover arrow */}
+              <div className={`mt-4 flex items-center gap-1 text-xs font-semibold ${f.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+                Learn more
+                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </div>
           ))}
