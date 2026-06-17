@@ -1,6 +1,13 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendNotification } from '@/src/lib/notify'
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April',
+  'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December'
+]
 
 export async function POST(request: Request) {
   try {
@@ -36,12 +43,8 @@ export async function POST(request: Request) {
       where: { societyId: society.id },
       include: {
         apartments: {
-          where: {
-            residentId: { not: null }
-          },
-          include: {
-            resident: true
-          }
+          where: { residentId: { not: null } },
+          include: { resident: true }
         }
       }
     })
@@ -64,22 +67,13 @@ export async function POST(request: Request) {
     }
 
     // Convert month name to number if needed
-    const monthNames = [
-      'January', 'February', 'March', 'April',
-      'May', 'June', 'July', 'August',
-      'September', 'October', 'November', 'December'
-    ]
-    
     const monthNumber = typeof month === 'string' && isNaN(Number(month))
-      ? monthNames.indexOf(month) + 1
+      ? MONTH_NAMES.indexOf(month) + 1
       : Number(month)
 
     const yearNumber = Number(year)
-
-    console.log('Month number:', monthNumber)
-    console.log('Year number:', yearNumber)
-    console.log('Type of month:', typeof monthNumber)
-    console.log('Type of year:', typeof yearNumber)
+    const monthName = MONTH_NAMES[(monthNumber - 1)] ?? `Month ${monthNumber}`
+    const dueDateStr = new Date(dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
     // Generate maintenance records
     let created = 0
@@ -113,11 +107,21 @@ export async function POST(request: Request) {
           userId: apartment.residentId!,
           societyId: society.id,
           apartmentId: apartment.id,
-          penaltyAmount: penaltyAmount 
-            ? parseFloat(penaltyAmount) 
+          penaltyAmount: penaltyAmount
+            ? parseFloat(penaltyAmount)
             : 0,
         }
       })
+
+      // Notify each resident
+      sendNotification({
+        userId: apartment.residentId!,
+        title: '💰 Maintenance Due',
+        message: `Your maintenance of ₹${parseFloat(amount).toLocaleString('en-IN')} for ${monthName} ${yearNumber} is due on ${dueDateStr}.`,
+        type: 'MAINTENANCE',
+        link: '/resident/maintenance',
+      })
+
       created++
     }
 

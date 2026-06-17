@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { authOptions } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
+import { sendNotification } from "@/src/lib/notify";
 
 const updateSchema = z.object({
   status: z.enum(["OPEN", "IN_PROGRESS", "RESOLVED"]),
@@ -16,6 +17,13 @@ const nextAllowedStatus: Record<ComplaintStatus, ComplaintStatus[]> = {
   IN_PROGRESS: ["RESOLVED"],
   RESOLVED: [],
   CLOSED: [],
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  IN_PROGRESS: 'In Progress',
+  RESOLVED: 'Resolved',
+  OPEN: 'Open',
+  CLOSED: 'Closed',
 };
 
 export async function PATCH(
@@ -38,11 +46,7 @@ export async function PATCH(
   const complaint = await prisma.complaint.findUnique({
     where: { id },
     include: {
-      society: {
-        select: {
-          adminId: true,
-        },
-      },
+      society: { select: { adminId: true } },
     },
   });
 
@@ -70,6 +74,18 @@ export async function PATCH(
       status: parsed.data.status,
       adminResponse: parsed.data.adminResponse,
     },
+  });
+
+  // Notify the resident whose complaint was updated
+  const statusLabel = STATUS_LABELS[parsed.data.status] ?? parsed.data.status;
+  sendNotification({
+    userId: complaint.userId,
+    title: `Complaint ${statusLabel}`,
+    message: `Your complaint "${complaint.title}" has been marked as ${statusLabel}.${
+      parsed.data.adminResponse ? ` Admin note: ${parsed.data.adminResponse.substring(0, 80)}` : ''
+    }`,
+    type: 'COMPLAINT',
+    link: '/resident/complaints',
   });
 
   return NextResponse.json({ complaint: updatedComplaint });

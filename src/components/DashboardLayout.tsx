@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { getRoleLabel, getRoleColor } from '@/src/lib/auth-redirect'
+import NotificationBell from '@/src/components/ui/NotificationBell'
 
 export type NavItem = {
   href: string
@@ -252,6 +253,9 @@ export default function DashboardLayout({
             SocietyPro
           </span>
           <div style={{ flex: 1 }} />
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* User display in top nav */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

@@ -75,6 +75,27 @@ enum EntryMethod {
   PRE_APPROVED
 }
 
+enum NotificationType {
+  NOTICE
+  COMPLAINT
+  BOOKING
+  MAINTENANCE
+  VISITOR
+  GENERAL
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  link      String?
+  createdAt DateTime         @default(now())
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -86,15 +107,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  apartment    Apartment?    @relation("ApartmentResident")
-  notices      Notice[]
-  complaints   Complaint[]
-  bookings     Booking[]
-  visitors     Visitor[]
-  guardProfile GuardProfile?
-  gateEntries  GateEntry[]   @relation("GuardEntries")
-  adminSociety Society?      @relation("SocietyAdmin")
-  maintenances Maintenance[]
+  apartment     Apartment?     @relation("ApartmentResident")
+  notices       Notice[]
+  complaints    Complaint[]
+  bookings      Booking[]
+  visitors      Visitor[]
+  guardProfile  GuardProfile?
+  gateEntries   GateEntry[]    @relation("GuardEntries")
+  adminSociety  Society?       @relation("SocietyAdmin")
+  maintenances  Maintenance[]
+  notifications Notification[]
 }
 
 model GuardProfile {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/src/lib/auth";
+import { sendNotificationToMany } from "@/src/lib/notify";
 
 export async function GET(req: Request) {
   try {
@@ -76,6 +77,24 @@ export async function POST(req: Request) {
         creator: { select: { name: true } }
       }
     });
+
+    // Notify all residents in the society (fire and forget — don't await)
+    const buildings = await prisma.building.findMany({
+      where: { societyId: society.id },
+      include: { apartments: { where: { residentId: { not: null } }, select: { residentId: true } } },
+    });
+    const residentIds = buildings
+      .flatMap(b => b.apartments.map(a => a.residentId!))
+      .filter(Boolean);
+    if (residentIds.length > 0) {
+      sendNotificationToMany({
+        userIds: residentIds,
+        title: `📢 New Notice: ${title}`,
+        message: content.substring(0, 120) + (content.length > 120 ? '…' : ''),
+        type: 'NOTICE',
+        link: '/resident/notices',
+      });
+    }
 
     return NextResponse.json({ notice }, { status: 201 });
   } catch (error) {
